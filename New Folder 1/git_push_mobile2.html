@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>GitPush Mobile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:       #080b10;
+  --bg2:      #0d1117;
+  --surface:  #161b22;
+  --surface2: #1c2230;
+  --border:   #30363d;
+  --border2:  #21262d;
+  --accent:   #58a6ff;
+  --green:    #3fb950;
+  --red:      #f85149;
+  --yellow:   #d29922;
+  --purple:   #bc8cff;
+  --text:     #e6edf3;
+  --text2:    #8b949e;
+  --text3:    #484f58;
+  --radius:   10px;
+  --mono:     'JetBrains Mono', monospace;
+  --sans:     'Syne', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* ── Grid noise texture overlay ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: .5;
+}
+
+.wrapper {
+  position: relative;
+  z-index: 1;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.logo {
+  width: 42px; height: 42px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  border-radius: 10px;
+  display: grid; place-items: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  box-shadow: 0 0 20px rgba(88,166,255,.25);
+}
+.header-text h1 {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -.3px;
+  line-height: 1.1;
+}
+.header-text p {
+  font-size: 11.5px;
+  color: var(--text2);
+  margin-top: 2px;
+  font-family: var(--mono);
+}
+
+/* ── Steps ── */
+.steps {
+  display: flex;
+  gap: 0;
+  margin-bottom: 24px;
+  position: relative;
+}
+.steps::after {
+  content: '';
+  position: absolute;
+  top: 14px; left: 14px; right: 14px;
+  height: 1px;
+  background: var(--border2);
+  z-index: 0;
+}
+.step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  z-index: 1;
+}
+.step-dot {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  display: grid; place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--mono);
+  color: var(--text2);
+  transition: all .3s;
+}
+.step.active .step-dot  { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.step.done .step-dot    { background: var(--green);  border-color: var(--green);  color: var(--bg); }
+.step-label {
+  font-size: 9.5px;
+  color: var(--text3);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  text-align: center;
+  transition: color .3s;
+}
+.step.active .step-label { color: var(--accent); }
+.step.done .step-label   { color: var(--green); }
+
+/* ── Cards ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 12px;
+  transition: border-color .2s;
+}
+.card:focus-within { border-color: var(--accent); }
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.card-icon {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: grid; place-items: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.card-icon.blue   { background: rgba(88,166,255,.12); }
+.card-icon.green  { background: rgba(63,185,80,.12); }
+.card-icon.purple { background: rgba(188,140,255,.12); }
+.card-icon.yellow { background: rgba(210,153,34,.12); }
+.card-header-text h3 { font-size: 14px; font-weight: 700; }
+.card-header-text p  { font-size: 11.5px; color: var(--text2); margin-top: 1px; }
+
+/* ── Folder picker ── */
+.folder-picker {
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  padding: 22px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .2s;
+  position: relative;
+}
+.folder-picker:hover,
+.folder-picker.has-files { border-color: var(--accent); background: rgba(88,166,255,.04); }
+.folder-picker input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.folder-picker-icon { font-size: 32px; margin-bottom: 8px; display: block; }
+.folder-picker h4 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.folder-picker p  { font-size: 12px; color: var(--text2); }
+.folder-picker .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(63,185,80,.12);
+  border: 1px solid rgba(63,185,80,.25);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--green);
+  margin-top: 10px;
+  font-family: var(--mono);
+}
+
+/* ── Inputs ── */
+.field { margin-bottom: 12px; }
+.field:last-child { margin-bottom: 0; }
+.field label {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: var(--text2);
+  margin-bottom: 6px;
+  font-family: var(--mono);
+}
+.field input {
+  width: 100%;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 11px 13px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: var(--mono);
+  outline: none;
+  -webkit-appearance: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(88,166,255,.1);
+}
+.field input::placeholder { color: var(--text3); }
+.field .hint {
+  font-size: 10.5px;
+  color: var(--text3);
+  margin-top: 5px;
+  line-height: 1.5;
+  font-family: var(--mono);
+}
+.field .hint a { color: var(--accent); text-decoration: none; }
+
+/* ── Token link ── */
+.token-guide {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(88,166,255,.06);
+  border: 1px solid rgba(88,166,255,.15);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-size: 11.5px;
+  color: var(--text2);
+  line-height: 1.5;
+}
+.token-guide a {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* ── Branch row ── */
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ── Push button ── */
+#pushBtn {
+  width: 100%;
+  background: linear-gradient(135deg, var(--accent), #388bfd);
+  color: var(--bg);
+  border: none;
+  border-radius: 12px;
+  padding: 15px;
+  font-size: 15px;
+  font-weight: 800;
+  font-family: var(--sans);
+  cursor: pointer;
+  letter-spacing: -.2px;
+  margin-top: 4px;
+  box-shadow: 0 4px 20px rgba(88,166,255,.25);
+  transition: all .2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+#pushBtn:active  { transform: scale(.98); }
+#pushBtn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+/* ── Error banner ── */
+.error-banner {
+  background: rgba(248,81,73,.08);
+  border: 1px solid rgba(248,81,73,.3);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  color: var(--red);
+  margin-top: 12px;
+  display: none;
+  line-height: 1.6;
+  font-family: var(--mono);
+}
+.error-banner .err-title {
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Progress section ── */
+.progress-section {
+  margin-top: 16px;
+  display: none;
+}
+.prog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.prog-label { font-size: 13px; font-weight: 700; }
+.prog-count {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text2);
+}
+.bar-track {
+  background: var(--surface2);
+  border-radius: 6px;
+  height: 6px;
+  overflow: hidden;
+  border: 1px solid var(--border2);
+}
+.bar-fill {
+  height: 6px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--accent), var(--purple));
+  width: 0%;
+  transition: width .4s cubic-bezier(.4,0,.2,1);
+}
+.phase-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+.phase {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-align: center;
+  font-size: 10.5px;
+  color: var(--text3);
+  font-family: var(--mono);
+  transition: all .3s;
+}
+.phase.active   { border-color: var(--accent); color: var(--accent); background: rgba(88,166,255,.06); }
+.phase.complete { border-color: var(--green);  color: var(--green);  background: rgba(63,185,80,.06); }
+.phase-icon { font-size: 14px; display: block; margin-bottom: 3px; }
+.phase span { display: block; }
+
+/* ── Log terminal ── */
+.terminal {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  margin-top: 12px;
+  overflow: hidden;
+}
+.terminal-bar {
+  background: var(--surface);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border2);
+}
+.t-dot { width: 10px; height: 10px; border-radius: 50%; }
+.t-dot.r { background: #ff5f57; }
+.t-dot.y { background: #febc2e; }
+.t-dot.g { background: #28c840; }
+.terminal-title { font-size: 11px; color: var(--text3); font-family: var(--mono); margin-left: 4px; }
+.terminal-body {
+  padding: 10px 12px;
+  height: 220px;
+  overflow-y: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.7;
+  scroll-behavior: smooth;
+}
+.terminal-body::-webkit-scrollbar { width: 4px; }
+.terminal-body::-webkit-scrollbar-track { background: transparent; }
+.terminal-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.log-line { display: flex; gap: 8px; align-items: flex-start; }
+.log-time  { color: var(--text3); flex-shrink: 0; }
+.log-ok    .log-msg { color: var(--green); }
+.log-err   .log-msg { color: var(--red); }
+.log-info  .log-msg { color: var(--text2); }
+.log-hl    .log-msg { color: var(--text); }
+.log-warn  .log-msg { color: var(--yellow); }
+
+/* ── Done state ── */
+.done-card {
+  background: linear-gradient(135deg, rgba(63,185,80,.08), rgba(88,166,255,.04));
+  border: 1px solid rgba(63,185,80,.3);
+  border-radius: 14px;
+  padding: 22px;
+  text-align: center;
+  margin-top: 14px;
+  display: none;
+}
+.done-card .done-icon { font-size: 42px; margin-bottom: 10px; display: block; }
+.done-card h3 { font-size: 18px; font-weight: 800; color: var(--green); margin-bottom: 6px; }
+.done-card p  { font-size: 12.5px; color: var(--text2); margin-bottom: 16px; font-family: var(--mono); }
+.done-card a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--green);
+  color: var(--bg);
+  padding: 11px 22px;
+  border-radius: 8px;
+  font-weight: 800;
+  font-size: 14px;
+  text-decoration: none;
+  transition: opacity .2s;
+}
+.done-card a:active { opacity: .8; }
+
+/* ── Pulse animation ── */
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.pulsing { animation: pulse 1.5s ease-in-out infinite; }
+
+/* ── Spinner ── */
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,.2);
+  border-top-color: var(--bg);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">⬆</div>
+    <div class="header-text">
+      <h1>GitPush Mobile</h1>
+      <p>folder → github, zero terminal</p>
+    </div>
+  </div>
+
+  <!-- Progress steps -->
+  <div class="steps" id="stepsRow">
+    <div class="step active" id="s1">
+      <div class="step-dot">1</div>
+      <div class="step-label">Folder</div>
+    </div>
+    <div class="step" id="s2">
+      <div class="step-dot">2</div>
+      <div class="step-label">Repo</div>
+    </div>
+    <div class="step" id="s3">
+      <div class="step-dot">3</div>
+      <div class="step-label">Push</div>
+    </div>
+  </div>
+
+  <!-- Step 1: Folder -->
+  <div class="card" id="cardFolder">
+    <div class="card-header">
+      <div class="card-icon blue">📁</div>
+      <div class="card-header-text">
+        <h3>Select Folder</h3>
+        <p>Pick the project folder to push</p>
+      </div>
+    </div>
+    <div class="folder-picker" id="folderPicker">
+      <input type="file" id="folderInput" webkitdirectory multiple accept="*/*"/>
+      <span class="folder-picker-icon">📂</span>
+      <h4>Tap to open file manager</h4>
+      <p>Select your project folder</p>
+      <div id="filesBadge" style="display:none" class="badge">
+        <span>✓</span><span id="filesCount">0 files selected</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Repo details -->
+  <div class="card" id="cardRepo">
+    <div class="card-header">
+      <div class="card-icon green">🔗</div>
+      <div class="card-header-text">
+        <h3>Repository</h3>
+        <p>GitHub repo URL + access token</p>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>GitHub Repository URL</label>
+      <input id="repoUrl" type="url" placeholder="https://github.com/username/my-repo"
+             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <div class="hint">Paste your full repository URL (the repo must exist on GitHub)</div>
+    </div>
+
+    <div class="token-guide">
+      <span>🔑</span>
+      <span>Need a token? <a href="https://github.com/settings/tokens/new?scopes=repo&description=GitPush+Mobile" target="_blank">Generate one here</a> — enable the <b>repo</b> scope.</span>
+    </div>
+
+    <div class="field">
+      <label>Personal Access Token (PAT)</label>
+      <input id="token" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxx"
+             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <div class="hint">Token is only sent directly to <b>api.github.com</b> — never stored or shared.</div>
+    </div>
+
+    <div class="row-2">
+      <div class="field">
+        <label>Branch</label>
+        <input id="branch" value="main" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      </div>
+      <div class="field">
+        <label>Commit message</label>
+        <input id="commitMsg" value="Initial commit" autocorrect="off" spellcheck="false"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- Push button -->
+  <button id="pushBtn" onclick="startPush()">
+    <span id="btnIcon">🚀</span>
+    <span id="btnText">Push to GitHub</span>
+  </button>
+
+  <!-- Error banner -->
+  <div class="error-banner" id="errBanner">
+    <div class="err-title"><span>⛔</span><span id="errTitle">Error</span></div>
+    <div id="errBody"></div>
+  </div>
+
+  <!-- Progress section -->
+  <div class="progress-section" id="progSection">
+    <div class="prog-header">
+      <span class="prog-label" id="progLabel">Pushing files…</span>
+      <span class="prog-count"><span id="progDone">0</span> / <span id="progTotal">0</span></span>
+    </div>
+    <div class="bar-track"><div class="bar-fill" id="barFill"></div></div>
+
+    <div class="phase-row">
+      <div class="phase" id="ph1">
+        <span class="phase-icon">🔐</span>
+        <span>Auth</span>
+      </div>
+      <div class="phase" id="ph2">
+        <span class="phase-icon">📦</span>
+        <span>Repo</span>
+      </div>
+      <div class="phase" id="ph3">
+        <span class="phase-icon">⬆</span>
+        <span>Upload</span>
+      </div>
+    </div>
+
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="t-dot r"></div>
+        <div class="t-dot y"></div>
+        <div class="t-dot g"></div>
+        <span class="terminal-title">git push log</span>
+      </div>
+      <div class="terminal-body" id="logBody"></div>
+    </div>
+  </div>
+
+  <!-- Done card -->
+  <div class="done-card" id="doneCard">
+    <span class="done-icon">🎉</span>
+    <h3>Push Complete!</h3>
+    <p id="doneMsg"></p>
+    <a id="repoLink" href="#" target="_blank">View on GitHub →</a>
+  </div>
+
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let selectedFiles = [];
+
+// ── File picker ─────────────────────────────────────────────────────────────
+document.getElementById('folderInput').addEventListener('change', function(e) {
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+
+  // Filter out hidden system files
+  selectedFiles = files.filter(f => {
+    const parts = f.webkitRelativePath.split('/');
+    return !parts.some(p => p.startsWith('.') || p === '__MACOSX' || p === 'node_modules');
+  });
+
+  const picker = document.getElementById('folderPicker');
+  const badge  = document.getElementById('filesBadge');
+  const count  = document.getElementById('filesCount');
+
+  picker.classList.add('has-files');
+  badge.style.display = 'inline-flex';
+  count.textContent = `${selectedFiles.length} files ready`;
+
+  // Update step indicator
+  stepDone(1);
+  stepActive(2);
+
+  log(`📂 ${selectedFiles.length} files selected from "${files[0].webkitRelativePath.split('/')[0]}"`, 'info');
+});
+
+// ── Logging ──────────────────────────────────────────────────────────────────
+function log(msg, type = 'info') {
+  const body = document.getElementById('logBody');
+  const now  = new Date();
+  const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+
+  const line = document.createElement('div');
+  line.className = `log-line log-${type}`;
+  line.innerHTML = `<span class="log-time">${time}</span><span class="log-msg">${escHtml(msg)}</span>`;
+  body.appendChild(line);
+  body.scrollTop = body.scrollHeight;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Step indicators ──────────────────────────────────────────────────────────
+function stepActive(n) { document.getElementById(`s${n}`).className = 'step active'; }
+function stepDone(n)   { document.getElementById(`s${n}`).className = 'step done'; }
+function phaseActive(n)   { document.getElementById(`ph${n}`).className = 'phase active'; }
+function phaseComplete(n) { document.getElementById(`ph${n}`).className = 'phase complete'; }
+
+// ── Error display ─────────────────────────────────────────────────────────────
+function showErr(title, body) {
+  const el = document.getElementById('errBanner');
+  document.getElementById('errTitle').textContent = title;
+  document.getElementById('errBody').textContent  = body;
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function clearErr() {
+  document.getElementById('errBanner').style.display = 'none';
+}
+
+// ── GitHub API helpers ────────────────────────────────────────────────────────
+async function ghFetch(token, method, path, body) {
+  const opts = {
+    method,
+    headers: {
+      'Authorization': 'token ' + token,
+      'Accept':        'application/vnd.github.v3+json',
+      'Content-Type':  'application/json',
+      'User-Agent':    'GitPush-Mobile/2.0',
+    }
+  };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+
+  let json = null;
+  let ok = false;
+  let status = 0;
+
+  try {
+    const r = await fetch('https://api.github.com' + path, opts);
+    status = r.status;
+    ok     = r.ok;
+    const text = await r.text();
+    try { json = JSON.parse(text); } catch(_) {}
+  } catch(e) {
+    throw new Error('Network error: ' + e.message);
+  }
+
+  return { ok, status, json };
+}
+
+// Read a File object → base64 string (handles ALL file types including binary)
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Failed to read ' + file.name));
+    reader.onload  = () => {
+      const bytes = new Uint8Array(reader.result);
+      let binary  = '';
+      // Process in chunks to avoid call stack overflow on large files
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+      }
+      resolve(btoa(binary));
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// Get existing file SHA (returns null if file doesn't exist yet)
+async function getFileSha(token, repo, branch, path) {
+  const r = await ghFetch(token, 'GET',
+    `/repos/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`
+  );
+  if (r.ok && r.json?.sha) return r.json.sha;
+  return null;
+}
+
+// Push a single file
+async function pushFile(token, repo, branch, path, b64, commitMsg, sha) {
+  const body = {
+    message: sha ? `Update ${path}` : commitMsg,
+    content: b64,
+    branch:  branch,
+  };
+  if (sha) body.sha = sha;
+
+  const r = await ghFetch(token, 'PUT',
+    `/repos/${repo}/contents/${encodeURIComponent(path)}`,
+    body
+  );
+  return r;
+}
+
+// Parse "https://github.com/owner/repo" → "owner/repo"
+function parseRepoUrl(url) {
+  url = url.trim().replace(/\/$/, '').replace(/\.git$/, '');
+  const m = url.match(/github\.com[/:]([^/]+)\/([^/\s]+)/);
+  if (!m) return null;
+  return `${m[1]}/${m[2]}`;
+}
+
+// Sleep helper
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Main push function ────────────────────────────────────────────────────────
+async function startPush() {
+  clearErr();
+
+  const token     = document.getElementById('token').value.trim();
+  const repoRaw   = document.getElementById('repoUrl').value.trim();
+  const branch    = document.getElementById('branch').value.trim() || 'main';
+  const commitMsg = document.getElementById('commitMsg').value.trim() || 'Initial commit';
+  const btn       = document.getElementById('pushBtn');
+
+  // ── Validate ────────────────────────────────────────────────────────────
+  if (!selectedFiles.length) {
+    showErr('No folder selected', 'Tap the folder picker above and choose your project folder.');
+    return;
+  }
+  if (!repoRaw) {
+    showErr('Repository URL missing', 'Paste your full GitHub repo URL, e.g. https://github.com/username/my-repo');
+    return;
+  }
+  const repo = parseRepoUrl(repoRaw);
+  if (!repo) {
+    showErr('Invalid repository URL', `Could not parse "${repoRaw}". Format must be: https://github.com/owner/repo-name`);
+    return;
+  }
+  if (!token) {
+    showErr('Access token missing', 'Paste your GitHub Personal Access Token (PAT). Tap "Generate one here" above to create one.');
+    return;
+  }
+  if (!token.startsWith('ghp_') && !token.startsWith('github_pat_') && !token.startsWith('gho_') && token.length < 20) {
+    showErr('Token looks invalid', 'GitHub tokens start with ghp_ or github_pat_. Make sure you copied the full token.');
+    return;
+  }
+
+  // ── UI: start state ──────────────────────────────────────────────────────
+  btn.disabled = true;
+  document.getElementById('btnIcon').outerHTML = '<span class="spinner" id="btnIcon"></span>';
+  document.getElementById('btnText').textContent = 'Pushing…';
+  document.getElementById('progSection').style.display = 'block';
+  document.getElementById('progTotal').textContent = selectedFiles.length;
+  document.getElementById('logBody').innerHTML = '';
+
+  stepActive(3);
+
+  log(`▶ Starting push → ${repo} (${branch})`, 'hl');
+  log(`  ${selectedFiles.length} files to upload`, 'info');
+
+  // ── Phase 1: Auth ─────────────────────────────────────────────────────────
+  phaseActive(1);
+  document.getElementById('progLabel').textContent = 'Verifying token…';
+  log('🔑 Authenticating with GitHub…', 'info');
+
+  const authR = await ghFetch(token, 'GET', '/user');
+  if (!authR.ok) {
+    const msg = authR.status === 401
+      ? 'Token is invalid or expired. Generate a new one with "repo" scope.'
+      : authR.status === 403
+      ? 'Token lacks required permissions. Make sure "repo" scope is enabled.'
+      : `Auth failed (HTTP ${authR.status}): ${authR.json?.message || 'unknown error'}`;
+    showErr('Authentication failed', msg);
+    log('✗ ' + msg, 'err');
+    resetBtn();
+    return;
+  }
+  const username = authR.json.login;
+  log(`✓ Signed in as @${username}`, 'ok');
+  phaseComplete(1);
+
+  // ── Phase 2: Repo check ───────────────────────────────────────────────────
+  phaseActive(2);
+  document.getElementById('progLabel').textContent = 'Checking repository…';
+  log(`📦 Checking repo: ${repo}`, 'info');
+
+  const repoR = await ghFetch(token, 'GET', `/repos/${repo}`);
+  if (!repoR.ok) {
+    let msg;
+    if (repoR.status === 404) {
+      msg = `Repository "${repo}" not found.\n\n` +
+            `1. Check the URL is correct\n` +
+            `2. Make sure the repo exists on GitHub (go to github.com and create it first)\n` +
+            `3. It can be empty — no README needed`;
+    } else if (repoR.status === 403) {
+      msg = `No access to "${repo}". Your token must have "repo" scope and you must be an owner/collaborator.`;
+    } else {
+      msg = `Could not access repository (HTTP ${repoR.status}): ${repoR.json?.message || ''}`;
+    }
+    showErr('Repository error', msg);
+    log('✗ Repo error: ' + repoR.json?.message, 'err');
+    resetBtn();
+    return;
+  }
+  const repoData  = repoR.json;
+  const isPrivate = repoData.private;
+  log(`✓ Repo found: ${repoData.full_name} (${isPrivate ? 'private' : 'public'})`, 'ok');
+  phaseComplete(2);
+
+  // ── Phase 3: Upload files ─────────────────────────────────────────────────
+  phaseActive(3);
+
+  let pushed  = 0;
+  let failed  = 0;
+  let updated = 0;
+
+  const folderRoot = selectedFiles[0].webkitRelativePath.split('/')[0];
+
+  for (let i = 0; i < selectedFiles.length; i++) {
+    const file    = selectedFiles[i];
+    // Strip the top-level folder name so repo root is clean
+    const relPath = file.webkitRelativePath
+      ? file.webkitRelativePath.replace(/^[^/]+\//, '')
+      : file.name;
+
+    const pct = Math.round((i / selectedFiles.length) * 100);
+    document.getElementById('barFill').style.width = pct + '%';
+    document.getElementById('progLabel').textContent = `Uploading… ${relPath.split('/').pop()}`;
+    document.getElementById('progDone').textContent  = pushed + updated;
+
+    let retries = 3;
+    let success = false;
+
+    while (retries > 0 && !success) {
+      try {
+        const b64 = await fileToBase64(file);
+        const sha = await getFileSha(token, repo, branch, relPath);
+
+        const r = await pushFile(token, repo, branch, relPath, b64, commitMsg, sha);
+
+        if (r.ok) {
+          if (sha) {
+            log(`↑ updated  ${relPath}`, 'info');
+            updated++;
+          } else {
+            log(`✓ pushed   ${relPath}`, 'ok');
+            pushed++;
+          }
+          success = true;
+
+        } else if (r.status === 422 && r.json?.message?.toLowerCase().includes('sha')) {
+          // SHA mismatch — file was updated between our GET and PUT, retry
+          log(`↻ SHA mismatch on ${relPath}, retrying…`, 'warn');
+          retries--;
+          await sleep(400);
+
+        } else if (r.status === 409) {
+          // Repo conflict (usually happens briefly after creation), retry
+          log(`↻ Conflict on ${relPath}, retrying…`, 'warn');
+          retries--;
+          await sleep(1200);
+
+        } else if (r.status === 403) {
+          log(`✗ Permission denied: ${relPath}`, 'err');
+          failed++;
+          success = true;
+
+        } else if (r.status === 429) {
+          // Rate limited
+          log(`⏳ Rate limited, waiting 10s…`, 'warn');
+          await sleep(10000);
+          retries--;
+
+        } else {
+          const msg = r.json?.message || `HTTP ${r.status}`;
+          log(`✗ ${relPath} → ${msg}`, 'err');
+          failed++;
+          success = true;
+        }
+
+      } catch(e) {
+        if (retries > 1) {
+          log(`↻ Error on ${relPath}: ${e.message}, retrying…`, 'warn');
+          retries--;
+          await sleep(800);
+        } else {
+          log(`✗ ${relPath} → ${e.message}`, 'err');
+          failed++;
+          success = true;
+        }
+      }
+    }
+
+    // Rate limit breathing room every 20 files
+    if ((i + 1) % 20 === 0 && i < selectedFiles.length - 1) {
+      await sleep(500);
+    }
+  }
+
+  // ── Done ──────────────────────────────────────────────────────────────────
+  document.getElementById('barFill').style.width = '100%';
+  document.getElementById('progDone').textContent = pushed + updated;
+
+  const total = pushed + updated;
+  log('─────────────────────────────', 'info');
+  log(`✅ ${total} files pushed (${pushed} new, ${updated} updated)${failed ? `, ${failed} failed` : ''}`, total > 0 ? 'ok' : 'err');
+
+  phaseComplete(3);
+  stepDone(3);
+
+  if (total > 0) {
+    const doneCard  = document.getElementById('doneCard');
+    const repoUrl   = `https://github.com/${repo}`;
+    document.getElementById('doneMsg').textContent =
+      `${total} files pushed to ${repo} on branch "${branch}"` +
+      (failed ? ` · ${failed} failed (see log)` : '');
+    document.getElementById('repoLink').href = repoUrl;
+    doneCard.style.display = 'block';
+    doneCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  if (failed > 0) {
+    showErr(
+      `${failed} file(s) failed`,
+      'Check the log for details. You can tap "Push to GitHub" again — already-pushed files will update safely.'
+    );
+  }
+
+  document.getElementById('progLabel').textContent = 'Complete';
+  resetBtn(total > 0);
+}
+
+function resetBtn(success = false) {
+  const btn = document.getElementById('pushBtn');
+  btn.disabled = false;
+  // Replace spinner with icon
+  const iconEl = document.getElementById('btnIcon');
+  if (iconEl) {
+    const span = document.createElement('span');
+    span.id = 'btnIcon';
+    span.textContent = success ? '🔄' : '🚀';
+    iconEl.replaceWith(span);
+  }
+  document.getElementById('btnText').textContent = success ? 'Push Again' : 'Push to GitHub';
+}
+</script>
+</body>
+</html>

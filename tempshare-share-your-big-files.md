@@ -14,7 +14,7 @@
 
 ---
 
-## [https://tempshare.boyztech.com:TempShare] The Easiest Way to Share Files Temporarily (Free & Private)
+## [TempShare](https://tempshare.boyztech.com) The Easiest Way to Share Files Temporarily (Free & Private)
 
 Have you ever needed to send a large file to someone and had no easy way to do it? Email attachments have size limits. Messenger apps compress images. Cloud storage services want you to sign up, pay, and manage yet another account.
 
